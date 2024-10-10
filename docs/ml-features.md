@@ -1,24 +1,6 @@
 ---
-layout: global
-title: Extracting, transforming and selecting features
-displayTitle: Extracting, transforming and selecting features
-license: |
-  Licensed to the Apache Software Foundation (ASF) under one or more
-  contributor license agreements.  See the NOTICE file distributed with
-  this work for additional information regarding copyright ownership.
-  The ASF licenses this file to You under the Apache License, Version 2.0
-  (the "License"); you may not use this file except in compliance with
-  the License.  You may obtain a copy of the License at
- 
-     http://www.apache.org/licenses/LICENSE-2.0
- 
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
+span
 ---
-
 This section covers algorithms for working with features, roughly divided into these groups:
 
 * Extraction: Extracting features from "raw" data
@@ -29,45 +11,40 @@ This section covers algorithms for working with features, roughly divided into t
 **Table of Contents**
 
 * This will become a table of contents (this text will be scraped).
-{:toc}
-
+  {:toc}
 
 # Feature Extractors
 
 ## TF-IDF
 
-[Term frequency-inverse document frequency (TF-IDF)](http://en.wikipedia.org/wiki/Tf%E2%80%93idf) 
-is a feature vectorization method widely used in text mining to reflect the importance of a term 
+[Term frequency-inverse document frequency (TF-IDF)](http://en.wikipedia.org/wiki/Tf%E2%80%93idf)
+is a feature vectorization method widely used in text mining to reflect the importance of a term
 to a document in the corpus. Denote a term by `$t$`, a document by `$d$`, and the corpus by `$D$`.
-Term frequency `$TF(t, d)$` is the number of times that term `$t$` appears in document `$d$`, while 
-document frequency `$DF(t, D)$` is the number of documents that contains term `$t$`. If we only use 
-term frequency to measure the importance, it is very easy to over-emphasize terms that appear very 
-often but carry little information about the document, e.g. "a", "the", and "of". If a term appears 
+Term frequency `$TF(t, d)$` is the number of times that term `$t$` appears in document `$d$`, while
+document frequency `$DF(t, D)$` is the number of documents that contains term `$t$`. If we only use
+term frequency to measure the importance, it is very easy to over-emphasize terms that appear very
+often but carry little information about the document, e.g. "a", "the", and "of". If a term appears
 very often across the corpus, it means it doesn't carry special information about a particular document.
 Inverse document frequency is a numerical measure of how much information a term provides:
-`\[
-IDF(t, D) = \log \frac{|D| + 1}{DF(t, D) + 1},
-\]`
-where `$|D|$` is the total number of documents in the corpus. Since logarithm is used, if a term 
-appears in all documents, its IDF value becomes 0. Note that a smoothing term is applied to avoid 
+`\[ IDF(t, D) = \log \frac{|D| + 1}{DF(t, D) + 1}, \]`
+where `$|D|$` is the total number of documents in the corpus. Since logarithm is used, if a term
+appears in all documents, its IDF value becomes 0. Note that a smoothing term is applied to avoid
 dividing by zero for terms outside the corpus. The TF-IDF measure is simply the product of TF and IDF:
-`\[
-TFIDF(t, d, D) = TF(t, d) \cdot IDF(t, D).
-\]`
+`\[ TFIDF(t, d, D) = TF(t, d) \cdot IDF(t, D). \]`
 There are several variants on the definition of term frequency and document frequency.
 In MLlib, we separate TF and IDF to make them flexible.
 
-**TF**: Both `HashingTF` and `CountVectorizer` can be used to generate the term frequency vectors. 
+**TF**: Both `HashingTF` and `CountVectorizer` can be used to generate the term frequency vectors.
 
-`HashingTF` is a `Transformer` which takes sets of terms and converts those sets into 
+`HashingTF` is a `Transformer` which takes sets of terms and converts those sets into
 fixed-length feature vectors.  In text processing, a "set of terms" might be a bag of words.
 `HashingTF` utilizes the [hashing trick](http://en.wikipedia.org/wiki/Feature_hashing).
 A raw feature is mapped into an index (term) by applying a hash function. The hash function
 used here is [MurmurHash 3](https://en.wikipedia.org/wiki/MurmurHash). Then term frequencies
-are calculated based on the mapped indices. This approach avoids the need to compute a global 
-term-to-index map, which can be expensive for a large corpus, but it suffers from potential hash 
-collisions, where different raw features may become the same term after hashing. To reduce the 
-chance of collision, we can increase the target feature dimension, i.e. the number of buckets 
+are calculated based on the mapped indices. This approach avoids the need to compute a global
+term-to-index map, which can be expensive for a large corpus, but it suffers from potential hash
+collisions, where different raw features may become the same term after hashing. To reduce the
+chance of collision, we can increase the target feature dimension, i.e. the number of buckets
 of the hash table. Since a simple modulo on the hashed value is used to determine the vector index,
 it is advisable to use a power of two as the feature dimension, otherwise the features will not
 be mapped evenly to the vector indices. The default feature dimension is `$2^{18} = 262,144$`.
@@ -78,19 +55,19 @@ model binary, rather than integer, counts.
 `CountVectorizer` converts text documents to vectors of term counts. Refer to [CountVectorizer
 ](ml-features.html#countvectorizer) for more details.
 
-**IDF**: `IDF` is an `Estimator` which is fit on a dataset and produces an `IDFModel`.  The 
-`IDFModel` takes feature vectors (generally created from `HashingTF` or `CountVectorizer`) and 
+**IDF**: `IDF` is an `Estimator` which is fit on a dataset and produces an `IDFModel`.  The
+`IDFModel` takes feature vectors (generally created from `HashingTF` or `CountVectorizer`) and
 scales each feature. Intuitively, it down-weights features which appear frequently in a corpus.
 
 **Note:** `spark.ml` doesn't provide tools for text segmentation.
-We refer users to the [Stanford NLP Group](http://nlp.stanford.edu/) and 
+We refer users to the [Stanford NLP Group](http://nlp.stanford.edu/) and
 [scalanlp/chalk](https://github.com/scalanlp/chalk).
 
 **Examples**
 
-In the following code segment, we start with a set of sentences.  We split each sentence into words 
-using `Tokenizer`.  For each sentence (bag of words), we use `HashingTF` to hash the sentence into 
-a feature vector.  We use `IDF` to rescale the feature vectors; this generally improves performance 
+In the following code segment, we start with a set of sentences.  We split each sentence into words
+using `Tokenizer`.  For each sentence (bag of words), we use `HashingTF` to hash the sentence into
+a feature vector.  We use `IDF` to rescale the feature vectors; this generally improves performance
 when using text as features.  Our feature vectors could then be passed to a learning algorithm.
 
 <div class="codetabs">
@@ -101,6 +78,7 @@ Refer to the [HashingTF Python docs](api/python/reference/api/pyspark.ml.feature
 the [IDF Python docs](api/python/reference/api/pyspark.ml.feature.IDF.html) for more details on the API.
 
 {% include_example python/ml/tf_idf_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -109,6 +87,7 @@ Refer to the [HashingTF Scala docs](api/scala/org/apache/spark/ml/feature/Hashin
 the [IDF Scala docs](api/scala/org/apache/spark/ml/feature/IDF.html) for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/TfIdfExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -117,6 +96,7 @@ Refer to the [HashingTF Java docs](api/java/org/apache/spark/ml/feature/HashingT
 [IDF Java docs](api/java/org/apache/spark/ml/feature/IDF.html) for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaTfIdfExample.java %}
+
 </div>
 
 </div>
@@ -142,6 +122,7 @@ Refer to the [Word2Vec Python docs](api/python/reference/api/pyspark.ml.feature.
 for more details on the API.
 
 {% include_example python/ml/word2vec_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -150,6 +131,7 @@ Refer to the [Word2Vec Scala docs](api/scala/org/apache/spark/ml/feature/Word2Ve
 for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/Word2VecExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -158,6 +140,7 @@ Refer to the [Word2Vec Java docs](api/java/org/apache/spark/ml/feature/Word2Vec.
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaWord2VecExample.java %}
+
 </div>
 
 </div>
@@ -165,17 +148,17 @@ for more details on the API.
 ## CountVectorizer
 
 `CountVectorizer` and `CountVectorizerModel` aim to help convert a collection of text documents
- to vectors of token counts. When an a-priori dictionary is not available, `CountVectorizer` can
- be used as an `Estimator` to extract the vocabulary, and generates a `CountVectorizerModel`. The
- model produces sparse representations for the documents over the vocabulary, which can then be
- passed to other algorithms like LDA.
+to vectors of token counts. When an a-priori dictionary is not available, `CountVectorizer` can
+be used as an `Estimator` to extract the vocabulary, and generates a `CountVectorizerModel`. The
+model produces sparse representations for the documents over the vocabulary, which can then be
+passed to other algorithms like LDA.
 
- During the fitting process, `CountVectorizer` will select the top `vocabSize` words ordered by
- term frequency across the corpus. An optional parameter `minDF` also affects the fitting process
- by specifying the minimum number (or fraction if < 1.0) of documents a term must appear in to be
- included in the vocabulary. Another optional binary toggle parameter controls the output vector.
- If set to true all nonzero counts are set to 1. This is especially useful for discrete probabilistic
- models that model binary, rather than integer, counts.
+During the fitting process, `CountVectorizer` will select the top `vocabSize` words ordered by
+term frequency across the corpus. An optional parameter `minDF` also affects the fitting process
+by specifying the minimum number (or fraction if < 1.0) of documents a term must appear in to be
+included in the vocabulary. Another optional binary toggle parameter controls the output vector.
+If set to true all nonzero counts are set to 1. This is especially useful for discrete probabilistic
+models that model binary, rather than integer, counts.
 
 **Examples**
 
@@ -210,6 +193,7 @@ and the [CountVectorizerModel Python docs](api/python/reference/api/pyspark.ml.f
 for more details on the API.
 
 {% include_example python/ml/count_vectorizer_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -219,6 +203,7 @@ and the [CountVectorizerModel Scala docs](api/scala/org/apache/spark/ml/feature/
 for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/CountVectorizerExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -228,6 +213,7 @@ and the [CountVectorizerModel Java docs](api/java/org/apache/spark/ml/feature/Co
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaCountVectorizerExample.java %}
+
 </div>
 
 </div>
@@ -243,16 +229,16 @@ The `FeatureHasher` transformer operates on multiple columns. Each column may co
 numeric or categorical features. Behavior and handling of column data types is as follows:
 
 - Numeric columns: For numeric features, the hash value of the column name is used to map the
-feature value to its index in the feature vector. By default, numeric features are not treated
-as categorical (even when they are integers). To treat them as categorical, specify the relevant
-columns using the `categoricalCols` parameter.
+  feature value to its index in the feature vector. By default, numeric features are not treated
+  as categorical (even when they are integers). To treat them as categorical, specify the relevant
+  columns using the `categoricalCols` parameter.
 - String columns: For categorical features, the hash value of the string "column_name=value"
-is used to map to the vector index, with an indicator value of `1.0`. Thus, categorical features
-are "one-hot" encoded (similarly to using [OneHotEncoder](ml-features.html#onehotencoder) with
-`dropLast=false`).
+  is used to map to the vector index, with an indicator value of `1.0`. Thus, categorical features
+  are "one-hot" encoded (similarly to using [OneHotEncoder](ml-features.html#onehotencoder) with
+  `dropLast=false`).
 - Boolean columns: Boolean values are treated in the same way as string columns. That is,
-boolean features are represented as "column_name=true" or "column_name=false", with an indicator
-value of `1.0`.
+  boolean features are represented as "column_name=true" or "column_name=false", with an indicator
+  value of `1.0`.
 
 Null (missing) values are ignored (implicitly zero in the resulting feature vector).
 
@@ -297,6 +283,7 @@ Refer to the [FeatureHasher Python docs](api/python/reference/api/pyspark.ml.fea
 for more details on the API.
 
 {% include_example python/ml/feature_hasher_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -305,6 +292,7 @@ Refer to the [FeatureHasher Scala docs](api/scala/org/apache/spark/ml/feature/Fe
 for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/FeatureHasherExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -313,6 +301,7 @@ Refer to the [FeatureHasher Java docs](api/java/org/apache/spark/ml/feature/Feat
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaFeatureHasherExample.java %}
+
 </div>
 
 </div>
@@ -324,10 +313,10 @@ for more details on the API.
 [Tokenization](http://en.wikipedia.org/wiki/Lexical_analysis#Tokenization) is the process of taking text (such as a sentence) and breaking it into individual terms (usually words).  A simple [Tokenizer](api/scala/org/apache/spark/ml/feature/Tokenizer.html) class provides this functionality.  The example below shows how to split sentences into sequences of words.
 
 [RegexTokenizer](api/scala/org/apache/spark/ml/feature/RegexTokenizer.html) allows more
- advanced tokenization based on regular expression (regex) matching.
- By default, the parameter "pattern" (regex, default: `"\\s+"`) is used as delimiters to split the input text.
- Alternatively, users can set parameter "gaps" to false indicating the regex "pattern" denotes
- "tokens" rather than splitting gaps, and find all matching occurrences as the tokenization result.
+advanced tokenization based on regular expression (regex) matching.
+By default, the parameter "pattern" (regex, default: `"\\s+"`) is used as delimiters to split the input text.
+Alternatively, users can set parameter "gaps" to false indicating the regex "pattern" denotes
+"tokens" rather than splitting gaps, and find all matching occurrences as the tokenization result.
 
 **Examples**
 
@@ -340,6 +329,7 @@ the [RegexTokenizer Python docs](api/python/reference/api/pyspark.ml.feature.Reg
 for more details on the API.
 
 {% include_example python/ml/tokenizer_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -349,6 +339,7 @@ and the [RegexTokenizer Scala docs](api/scala/org/apache/spark/ml/feature/RegexT
 for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/TokenizerExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -358,11 +349,13 @@ and the [RegexTokenizer Java docs](api/java/org/apache/spark/ml/feature/RegexTok
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaTokenizerExample.java %}
+
 </div>
 
 </div>
 
 ## StopWordsRemover
+
 [Stop words](https://en.wikipedia.org/wiki/Stop_words) are words which
 should be excluded from the input, typically because the words appear
 frequently and don't carry as much meaning.
@@ -370,11 +363,11 @@ frequently and don't carry as much meaning.
 `StopWordsRemover` takes as input a sequence of strings (e.g. the output
 of a [Tokenizer](ml-features.html#tokenizer)) and drops all the stop
 words from the input sequences. The list of stopwords is specified by
-the `stopWords` parameter. Default stop words for some languages are accessible 
-by calling `StopWordsRemover.loadDefaultStopWords(language)`, for which available 
-options are "danish", "dutch", "english", "finnish", "french", "german", "hungarian", 
-"italian", "norwegian", "portuguese", "russian", "spanish", "swedish" and "turkish". 
-A boolean parameter `caseSensitive` indicates if the matches should be case sensitive 
+the `stopWords` parameter. Default stop words for some languages are accessible
+by calling `StopWordsRemover.loadDefaultStopWords(language)`, for which available
+options are "danish", "dutch", "english", "finnish", "french", "german", "hungarian",
+"italian", "norwegian", "portuguese", "russian", "spanish", "swedish" and "turkish".
+A boolean parameter `caseSensitive` indicates if the matches should be case sensitive
 (false by default).
 
 **Examples**
@@ -409,6 +402,7 @@ Refer to the [StopWordsRemover Python docs](api/python/reference/api/pyspark.ml.
 for more details on the API.
 
 {% include_example python/ml/stopwords_remover_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -417,6 +411,7 @@ Refer to the [StopWordsRemover Scala docs](api/scala/org/apache/spark/ml/feature
 for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/StopWordsRemoverExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -425,6 +420,7 @@ Refer to the [StopWordsRemover Java docs](api/java/org/apache/spark/ml/feature/S
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaStopWordsRemoverExample.java %}
+
 </div>
 
 </div>
@@ -445,6 +441,7 @@ Refer to the [NGram Python docs](api/python/reference/api/pyspark.ml.feature.NGr
 for more details on the API.
 
 {% include_example python/ml/n_gram_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -453,6 +450,7 @@ Refer to the [NGram Scala docs](api/scala/org/apache/spark/ml/feature/NGram.html
 for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/NGramExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -461,10 +459,10 @@ Refer to the [NGram Java docs](api/java/org/apache/spark/ml/feature/NGram.html)
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaNGramExample.java %}
-</div>
 
 </div>
 
+</div>
 
 ## Binarizer
 
@@ -485,6 +483,7 @@ Refer to the [Binarizer Python docs](api/python/reference/api/pyspark.ml.feature
 for more details on the API.
 
 {% include_example python/ml/binarizer_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -493,6 +492,7 @@ Refer to the [Binarizer Scala docs](api/scala/org/apache/spark/ml/feature/Binari
 for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/BinarizerExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -501,6 +501,7 @@ Refer to the [Binarizer Java docs](api/java/org/apache/spark/ml/feature/Binarize
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaBinarizerExample.java %}
+
 </div>
 
 </div>
@@ -519,6 +520,7 @@ Refer to the [PCA Python docs](api/python/reference/api/pyspark.ml.feature.PCA.h
 for more details on the API.
 
 {% include_example python/ml/pca_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -527,6 +529,7 @@ Refer to the [PCA Scala docs](api/scala/org/apache/spark/ml/feature/PCA.html)
 for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/PCAExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -535,6 +538,7 @@ Refer to the [PCA Java docs](api/java/org/apache/spark/ml/feature/PCA.html)
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaPCAExample.java %}
+
 </div>
 
 </div>
@@ -553,6 +557,7 @@ Refer to the [PolynomialExpansion Python docs](api/python/reference/api/pyspark.
 for more details on the API.
 
 {% include_example python/ml/polynomial_expansion_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -561,6 +566,7 @@ Refer to the [PolynomialExpansion Scala docs](api/scala/org/apache/spark/ml/feat
 for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/PolynomialExpansionExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -569,6 +575,7 @@ Refer to the [PolynomialExpansion Java docs](api/java/org/apache/spark/ml/featur
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaPolynomialExpansionExample.java %}
+
 </div>
 
 </div>
@@ -597,6 +604,7 @@ Refer to the [DCT Python docs](api/python/reference/api/pyspark.ml.feature.DCT.h
 for more details on the API.
 
 {% include_example python/ml/dct_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -605,6 +613,7 @@ Refer to the [DCT Scala docs](api/scala/org/apache/spark/ml/feature/DCT.html)
 for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/DCTExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -613,6 +622,7 @@ Refer to the [DCT Java docs](api/java/org/apache/spark/ml/feature/DCT.html)
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaDCTExample.java %}
+
 </div>
 
 </div>
@@ -623,7 +633,7 @@ for more details on the API.
 `StringIndexer` can encode multiple columns. The indices are in `[0, numLabels)`, and four ordering options are supported:
 "frequencyDesc": descending order by label frequency (most frequent label assigned 0),
 "frequencyAsc": ascending order by label frequency (least frequent label assigned 0),
-"alphabetDesc": descending alphabetical order, and "alphabetAsc": ascending alphabetical order 
+"alphabetDesc": descending alphabetical order, and "alphabetAsc": ascending alphabetical order
 (default = "frequencyDesc"). Note that in case of equal frequency when under
 "frequencyDesc"/"frequencyAsc", the strings are further sorted by alphabet.
 
@@ -728,6 +738,7 @@ Refer to the [StringIndexer Python docs](api/python/reference/api/pyspark.ml.fea
 for more details on the API.
 
 {% include_example python/ml/string_indexer_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -736,6 +747,7 @@ Refer to the [StringIndexer Scala docs](api/scala/org/apache/spark/ml/feature/St
 for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/StringIndexerExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -744,10 +756,10 @@ Refer to the [StringIndexer Java docs](api/java/org/apache/spark/ml/feature/Stri
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaStringIndexerExample.java %}
-</div>
 
 </div>
 
+</div>
 
 ## IndexToString
 
@@ -836,6 +848,7 @@ for more details on the API.
 Refer to the [OneHotEncoder Python docs](api/python/reference/api/pyspark.ml.feature.OneHotEncoder.html) for more details on the API.
 
 {% include_example python/ml/onehot_encoder_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -843,6 +856,7 @@ Refer to the [OneHotEncoder Python docs](api/python/reference/api/pyspark.ml.fea
 Refer to the [OneHotEncoder Scala docs](api/scala/org/apache/spark/ml/feature/OneHotEncoder.html) for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/OneHotEncoderExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -851,35 +865,85 @@ Refer to the [OneHotEncoder Java docs](api/java/org/apache/spark/ml/feature/OneH
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaOneHotEncoderExample.java %}
+
 </div>
 
 </div>
 
 ## TargetEncoder
 
-Target Encoding maps a column of categorical indices into a numerical feature derived from the target.
-Leveraging the relationship between categorical features and the target variable, target encoding usually performs better than one-hot encoding (while avoiding the need to add extra columns)
+Target Encoding is a data-preprocessing technique that transforms high-cardinality categorical features into quasi-continuous scalar attributes suited for use in regression-type models. This paradigm maps individual values of an independent feature to a scalar, representing some estimate of the dependent attribute (meaning categorical values that exhibit similar statistics with respect to the target will have a similar representation).
 
-`TargetEncoder` can transform multiple columns, returning a single target-encoded output column for each input column.
-User can specify input and output column names by setting `inputCol` and `outputCol` for single-column use cases, or `inputCols` and `outputCols` for multi-column use cases (both arrays required to have the same size)
+By leveraging the relationship between categorical features and the target variable, Target Encoding usually performs better than One-Hot and does not require a final binary $1-to-K$ vector encoding. `TargetEncoder` can transform multiple columns, returning a single target-encoded output column for each input column.
 
-User can specify the target column name by setting `label`. This column contains the ground-truth labels from which encodings will be derived
+User can specify input and output column names by setting `inputCol` and `outputCol` for single-column use cases, or `inputCols` and `outputCols` for multi-column use cases (both arrays required to have the same size). These columns are expected to contain categorical indices (positive integers), being missing values (null) treated as a separate category. Data type must be any subclass of 'NumericType'. For string type input data, it is common to encode categorical features using [StringIndexer](ml-features.html#stringindexer) first.
 
-`TargetEncoder` supports the `handleInvalid` parameter to choose how to handle invalid input during transforming data.
-Available options include 'keep' (any invalid inputs are assigned to an extra categorical index) and 'error' (throw an error).
+User can specify the target column name by setting `label`. This column is expected the ground-truth labels from which encodings will be derived. Observations with missing label (null) are not considered when calculating estimates. Data type must be any subclass of 'NumericType'.
 
-`TargetEncoder` supports the `targetType` parameter to choose the label type when fitting data, affecting how statistics are calculated.
-Available options include 'binary'  and 'continuous' (mean-encoding).
-When set to 'binary', encodings will be fitted from target conditional probabilities (a.k.a bin-counting).
-When set to 'continuous', encodings will be fitted from according to target mean (a.k.a. mean-encoding).
+`TargetEncoder` supports the `handleInvalid` parameter to choose how to handle invalid input, meaning categories not seen at training, when encoding new data. Available options include 'keep' (any invalid inputs are assigned to an extra categorical index) and 'error' (throw an exception).
+
+`TargetEncoder` supports the `targetType` parameter to choose the label type when fitting data, affecting how estimates are calculated. Available options include 'binary'  and 'continuous'.
+- When set to 'binary', the target attribute $Y$ is expected to be binary, $Y\in{0,1}$. The transformation maps individual values $X_{i}$ to the conditional probability of $Y$ given that $X=X_{i}$. $S_{i}=P(Y|X=X_{i})$. This approach is also known as $\it{bin-counting}$.
+- When set to 'continuous', the target attribute $Y$ is expected to be continuous $Y\in\mathbb{Q}$. The transformation maps individual values $X_{i}$ to the average of $Y$ given that $X=X_{i}$. $S_{i}=E[Y|X=X_{i}$. This approach is also known as $\it{mean-encoding}$.
 
 `TargetEncoder` supports the `smoothing` parameter to tune how in-category stats and overall stats are weighted.
-When calculating encodings according only to in-class statistics, rarely seen categories are very likely to cause overfitting when used in learning.
-Smoothing prevents this behaviour by pondering in-class stats and overall stats according to weight of this class on the whole dataset.
-
-For string type input data, it is common to encode categorical features using [StringIndexer](ml-features.html#stringindexer) first.
+High-cardinality categorical features are usually unevenly distributed across all possible values of $X$.
+When calculating encodings $S_{i}$ according only to in-class statistics, rarely seen categories are very likely to cause overfitting when used in learning, as the direct estimate of $S_{i}$ is not reliable.
+Smoothing prevents this behaviour by blending in-class estimates with overall estimates according to the relative size of this class on the whole dataset.
+- $S_{i}=\lambda(n_{i})P(Y|X=X_{i}) + (1-\lambda(n_{i}))P(Y)$ for the binary case
+- $S_{i}=\lambda(n_{i})E[Y|X=X_{i}] + (1-\lambda(n_{i}))E[Y]$ for the continuous case
+being the weighting factor, $\lambda(n_{i})$, a monotonically increasing function on $n_{i}$, bounded between 0 and 1. Typically $\lambda(n_{i})$ is chosen as the parametric function $\lambda(n_{i})=\frac{n_{i}}{n_{i}+m}$, where $m$ is the smoothing factor.
 
 **Examples**
+
+Building on the `TargetEncoder` example, let's assume we have the following
+DataFrame with columns `feature` and `target` (binary & continuous):
+
+~~~~
+ feature | target | target
+         | (bin)  | (cont) 
+ --------|--------|--------|
+ 1       | 0      | 1.3
+ 1       | 1      | 2.5
+ 1       | 0      | 1.6
+ 2       | 1      | 1.8
+ 2       | 0      | 2.4
+ 3       | 1      | 3.2
+~~~~
+
+Applying `TargetEncoder` with 'binary' target type,
+`feature` as the input column,`target (bin)` as the label column
+and `encoded` as the output column, we are able to fit a model on the data to learn encodings
+and transform the data according to these mappings:
+
+~~~~
+ feature | target | encoded
+         | (bin)  | 
+ --------|--------|--------
+ 1       | 0      | 0.333
+ 1       | 1      | 0.333
+ 1       | 0      | 0.333
+ 2       | 1      | 0.5
+ 2       | 0      | 0.5
+ 3       | 1      | 1.0
+~~~~
+
+Applying `TargetEncoder` with 'continuous'  target type,
+`feature` as the input column,`target (cont)` as the label column
+and `encoded` as the output column, we are able to fit a model on the data to learn encodings
+and transform the data according to these mappings:
+
+~~~~
+ feature | target | encoded
+         | (cont) |
+ --------|--------|--------
+ 1       | 1.3    | 1.8
+ 1       | 2.5    | 1.8
+ 1       | 1.6    | 1.8
+ 2       | 1.8    | 2.1
+ 2       | 2.4    | 2.1
+ 3       | 3.2    | 3.2
+~~~~
 
 <div class="codetabs">
 
@@ -888,6 +952,7 @@ For string type input data, it is common to encode categorical features using [S
 Refer to the [TargetEncoder Python docs](api/python/reference/api/pyspark.ml.feature.TargetEncoder.html) for more details on the API.
 
 {% include_example python/ml/target_encoder_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -895,6 +960,7 @@ Refer to the [TargetEncoder Python docs](api/python/reference/api/pyspark.ml.fea
 Refer to the [TargetEncoder Scala docs](api/scala/org/apache/spark/ml/feature/TargetEncoder.html) for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/TargetEncoderExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -903,6 +969,7 @@ Refer to the [TargetEncoder Java docs](api/java/org/apache/spark/ml/feature/Targ
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaTargetEncoderExample.java %}
+
 </div>
 
 </div>
@@ -931,6 +998,7 @@ Refer to the [VectorIndexer Python docs](api/python/reference/api/pyspark.ml.fea
 for more details on the API.
 
 {% include_example python/ml/vector_indexer_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -939,6 +1007,7 @@ Refer to the [VectorIndexer Scala docs](api/scala/org/apache/spark/ml/feature/Ve
 for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/VectorIndexerExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -947,6 +1016,7 @@ Refer to the [VectorIndexer Java docs](api/java/org/apache/spark/ml/feature/Vect
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaVectorIndexerExample.java %}
+
 </div>
 
 </div>
@@ -962,28 +1032,28 @@ For example, if you have 2 vector type columns each of which has 3 dimensions as
 Assume that we have the following DataFrame with the columns "id1", "vec1", and "vec2":
 
 ~~~~
-  id1|vec1          |vec2          
+  id1|vec1          |vec2  
   ---|--------------|--------------
   1  |[1.0,2.0,3.0] |[8.0,4.0,5.0] 
   2  |[4.0,3.0,8.0] |[7.0,9.0,8.0] 
   3  |[6.0,1.0,9.0] |[2.0,3.0,6.0] 
   4  |[10.0,8.0,6.0]|[9.0,4.0,5.0] 
   5  |[9.0,2.0,7.0] |[10.0,7.0,3.0]
-  6  |[1.0,1.0,4.0] |[2.0,8.0,4.0]     
+  6  |[1.0,1.0,4.0] |[2.0,8.0,4.0]   
 ~~~~
 
 Applying `Interaction` with those input columns,
 then `interactedCol` as the output column contains:
 
 ~~~~
-  id1|vec1          |vec2          |interactedCol                                         
+  id1|vec1          |vec2          |interactedCol                           
   ---|--------------|--------------|------------------------------------------------------
-  1  |[1.0,2.0,3.0] |[8.0,4.0,5.0] |[8.0,4.0,5.0,16.0,8.0,10.0,24.0,12.0,15.0]            
-  2  |[4.0,3.0,8.0] |[7.0,9.0,8.0] |[56.0,72.0,64.0,42.0,54.0,48.0,112.0,144.0,128.0]     
-  3  |[6.0,1.0,9.0] |[2.0,3.0,6.0] |[36.0,54.0,108.0,6.0,9.0,18.0,54.0,81.0,162.0]        
+  1  |[1.0,2.0,3.0] |[8.0,4.0,5.0] |[8.0,4.0,5.0,16.0,8.0,10.0,24.0,12.0,15.0]  
+  2  |[4.0,3.0,8.0] |[7.0,9.0,8.0] |[56.0,72.0,64.0,42.0,54.0,48.0,112.0,144.0,128.0]   
+  3  |[6.0,1.0,9.0] |[2.0,3.0,6.0] |[36.0,54.0,108.0,6.0,9.0,18.0,54.0,81.0,162.0]  
   4  |[10.0,8.0,6.0]|[9.0,4.0,5.0] |[360.0,160.0,200.0,288.0,128.0,160.0,216.0,96.0,120.0]
   5  |[9.0,2.0,7.0] |[10.0,7.0,3.0]|[450.0,315.0,135.0,100.0,70.0,30.0,350.0,245.0,105.0] 
-  6  |[1.0,1.0,4.0] |[2.0,8.0,4.0] |[12.0,48.0,24.0,12.0,48.0,24.0,48.0,192.0,96.0]       
+  6  |[1.0,1.0,4.0] |[2.0,8.0,4.0] |[12.0,48.0,24.0,12.0,48.0,24.0,48.0,192.0,96.0]   
 ~~~~
 
 <div class="codetabs">
@@ -994,6 +1064,7 @@ Refer to the [Interaction Python docs](api/python/reference/api/pyspark.ml.featu
 for more details on the API.
 
 {% include_example python/ml/interaction_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -1002,6 +1073,7 @@ Refer to the [Interaction Scala docs](api/scala/org/apache/spark/ml/feature/Inte
 for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/InteractionExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -1010,6 +1082,7 @@ Refer to the [Interaction Java docs](api/java/org/apache/spark/ml/feature/Intera
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaInteractionExample.java %}
+
 </div>
 
 </div>
@@ -1030,6 +1103,7 @@ Refer to the [Normalizer Python docs](api/python/reference/api/pyspark.ml.featur
 for more details on the API.
 
 {% include_example python/ml/normalizer_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -1038,6 +1112,7 @@ Refer to the [Normalizer Scala docs](api/scala/org/apache/spark/ml/feature/Norma
 for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/NormalizerExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -1046,10 +1121,10 @@ Refer to the [Normalizer Java docs](api/java/org/apache/spark/ml/feature/Normali
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaNormalizerExample.java %}
-</div>
 
 </div>
 
+</div>
 
 ## StandardScaler
 
@@ -1074,6 +1149,7 @@ Refer to the [StandardScaler Python docs](api/python/reference/api/pyspark.ml.fe
 for more details on the API.
 
 {% include_example python/ml/standard_scaler_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -1082,6 +1158,7 @@ Refer to the [StandardScaler Scala docs](api/scala/org/apache/spark/ml/feature/S
 for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/StandardScalerExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -1090,10 +1167,10 @@ Refer to the [StandardScaler Java docs](api/java/org/apache/spark/ml/feature/Sta
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaStandardScalerExample.java %}
-</div>
 
 </div>
 
+</div>
 
 ## RobustScaler
 
@@ -1120,6 +1197,7 @@ Refer to the [RobustScaler Python docs](api/python/reference/api/pyspark.ml.feat
 for more details on the API.
 
 {% include_example python/ml/robust_scaler_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -1128,6 +1206,7 @@ Refer to the [RobustScaler Scala docs](api/scala/org/apache/spark/ml/feature/Rob
 for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/RobustScalerExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -1136,10 +1215,10 @@ Refer to the [RobustScaler Java docs](api/java/org/apache/spark/ml/feature/Robus
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaRobustScalerExample.java %}
-</div>
 
 </div>
 
+</div>
 
 ## MinMaxScaler
 
@@ -1151,9 +1230,7 @@ for more details on the API.
 `MinMaxScaler` computes summary statistics on a data set and produces a `MinMaxScalerModel`. The model can then transform each feature individually such that it is in the given range.
 
 The rescaled value for a feature E is calculated as,
-`\begin{equation}
-  Rescaled(e_i) = \frac{e_i - E_{min}}{E_{max} - E_{min}} * (max - min) + min
-\end{equation}`
+`\begin{equation} Rescaled(e_i) = \frac{e_i - E_{min}}{E_{max} - E_{min}} * (max - min) + min \end{equation}`
 For the case `$E_{max} == E_{min}$`, `$Rescaled(e_i) = 0.5 * (max + min)$`
 
 Note that since zero values will probably be transformed to non-zero values, output of the transformer will be `DenseVector` even for sparse input.
@@ -1171,6 +1248,7 @@ and the [MinMaxScalerModel Python docs](api/python/reference/api/pyspark.ml.feat
 for more details on the API.
 
 {% include_example python/ml/min_max_scaler_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -1180,6 +1258,7 @@ and the [MinMaxScalerModel Scala docs](api/scala/org/apache/spark/ml/feature/Min
 for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/MinMaxScalerExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -1189,18 +1268,18 @@ and the [MinMaxScalerModel Java docs](api/java/org/apache/spark/ml/feature/MinMa
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaMinMaxScalerExample.java %}
-</div>
 
 </div>
 
+</div>
 
 ## MaxAbsScaler
 
-`MaxAbsScaler` transforms a dataset of `Vector` rows, rescaling each feature to range [-1, 1] 
-by dividing through the maximum absolute value in each feature. It does not shift/center the 
+`MaxAbsScaler` transforms a dataset of `Vector` rows, rescaling each feature to range [-1, 1]
+by dividing through the maximum absolute value in each feature. It does not shift/center the
 data, and thus does not destroy any sparsity.
 
-`MaxAbsScaler` computes summary statistics on a data set and produces a `MaxAbsScalerModel`. The 
+`MaxAbsScaler` computes summary statistics on a data set and produces a `MaxAbsScalerModel`. The
 model can then transform each feature individually to range [-1, 1].
 
 **Examples**
@@ -1216,6 +1295,7 @@ and the [MaxAbsScalerModel Python docs](api/python/reference/api/pyspark.ml.feat
 for more details on the API.
 
 {% include_example python/ml/max_abs_scaler_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -1225,6 +1305,7 @@ and the [MaxAbsScalerModel Scala docs](api/scala/org/apache/spark/ml/feature/Max
 for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/MaxAbsScalerExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -1234,6 +1315,7 @@ and the [MaxAbsScalerModel Java docs](api/java/org/apache/spark/ml/feature/MaxAb
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaMaxAbsScalerExample.java %}
+
 </div>
 
 </div>
@@ -1262,6 +1344,7 @@ Refer to the [Bucketizer Python docs](api/python/reference/api/pyspark.ml.featur
 for more details on the API.
 
 {% include_example python/ml/bucketizer_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -1270,6 +1353,7 @@ Refer to the [Bucketizer Scala docs](api/scala/org/apache/spark/ml/feature/Bucke
 for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/BucketizerExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -1278,6 +1362,7 @@ Refer to the [Bucketizer Java docs](api/java/org/apache/spark/ml/feature/Bucketi
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaBucketizerExample.java %}
+
 </div>
 
 </div>
@@ -1286,21 +1371,7 @@ for more details on the API.
 
 ElementwiseProduct multiplies each input vector by a provided "weight" vector, using element-wise multiplication. In other words, it scales each column of the dataset by a scalar multiplier.  This represents the [Hadamard product](https://en.wikipedia.org/wiki/Hadamard_product_%28matrices%29) between the input vector, `v` and transforming vector, `w`, to yield a result vector.
 
-`\[ \begin{pmatrix}
-v_1 \\
-\vdots \\
-v_N
-\end{pmatrix} \circ \begin{pmatrix}
-                    w_1 \\
-                    \vdots \\
-                    w_N
-                    \end{pmatrix}
-= \begin{pmatrix}
-  v_1 w_1 \\
-  \vdots \\
-  v_N w_N
-  \end{pmatrix}
-\]`
+`\[ \begin{pmatrix} v_1 \\ \vdots \\ v_N \end{pmatrix} \circ \begin{pmatrix} w_1 \\ \vdots \\ w_N \end{pmatrix} = \begin{pmatrix} v_1 w_1 \\ \vdots \\ v_N w_N \end{pmatrix} \]`
 
 **Examples**
 
@@ -1314,6 +1385,7 @@ Refer to the [ElementwiseProduct Python docs](api/python/reference/api/pyspark.m
 for more details on the API.
 
 {% include_example python/ml/elementwise_product_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -1322,6 +1394,7 @@ Refer to the [ElementwiseProduct Scala docs](api/scala/org/apache/spark/ml/featu
 for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/ElementwiseProductExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -1330,6 +1403,7 @@ Refer to the [ElementwiseProduct Java docs](api/java/org/apache/spark/ml/feature
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaElementwiseProductExample.java %}
+
 </div>
 
 </div>
@@ -1375,6 +1449,7 @@ This is the output of the `SQLTransformer` with statement `"SELECT *, (v1 + v2) 
 Refer to the [SQLTransformer Python docs](api/python/reference/api/pyspark.ml.feature.SQLTransformer.html) for more details on the API.
 
 {% include_example python/ml/sql_transformer.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -1383,6 +1458,7 @@ Refer to the [SQLTransformer Scala docs](api/scala/org/apache/spark/ml/feature/S
 for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/SQLTransformerExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -1391,6 +1467,7 @@ Refer to the [SQLTransformer Java docs](api/java/org/apache/spark/ml/feature/SQL
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaSQLTransformerExample.java %}
+
 </div>
 
 </div>
@@ -1438,6 +1515,7 @@ Refer to the [VectorAssembler Python docs](api/python/reference/api/pyspark.ml.f
 for more details on the API.
 
 {% include_example python/ml/vector_assembler_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -1446,6 +1524,7 @@ Refer to the [VectorAssembler Scala docs](api/scala/org/apache/spark/ml/feature/
 for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/VectorAssemblerExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -1454,6 +1533,7 @@ Refer to the [VectorAssembler Java docs](api/java/org/apache/spark/ml/feature/Ve
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaVectorAssemblerExample.java %}
+
 </div>
 
 </div>
@@ -1491,6 +1571,7 @@ Refer to the [VectorSizeHint Python docs](api/python/reference/api/pyspark.ml.fe
 for more details on the API.
 
 {% include_example python/ml/vector_size_hint_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -1499,6 +1580,7 @@ Refer to the [VectorSizeHint Scala docs](api/scala/org/apache/spark/ml/feature/V
 for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/VectorSizeHintExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -1507,6 +1589,7 @@ Refer to the [VectorSizeHint Java docs](api/java/org/apache/spark/ml/feature/Vec
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaVectorSizeHintExample.java %}
+
 </div>
 
 </div>
@@ -1576,6 +1659,7 @@ Refer to the [QuantileDiscretizer Python docs](api/python/reference/api/pyspark.
 for more details on the API.
 
 {% include_example python/ml/quantile_discretizer_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -1584,6 +1668,7 @@ Refer to the [QuantileDiscretizer Scala docs](api/scala/org/apache/spark/ml/feat
 for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/QuantileDiscretizerExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -1592,18 +1677,18 @@ Refer to the [QuantileDiscretizer Java docs](api/java/org/apache/spark/ml/featur
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaQuantileDiscretizerExample.java %}
-</div>
 
 </div>
 
+</div>
 
 ## Imputer
 
 The `Imputer` estimator completes missing values in a dataset, using the mean, median or mode
 of the columns in which the missing values are located. The input columns should be of
 numeric type. Currently `Imputer` does not support categorical features and possibly
-creates incorrect values for columns containing categorical features. Imputer can impute custom values 
-other than 'NaN' by `.setMissingValue(custom_value)`. For example, `.setMissingValue(0)` will impute 
+creates incorrect values for columns containing categorical features. Imputer can impute custom values
+other than 'NaN' by `.setMissingValue(custom_value)`. For example, `.setMissingValue(0)` will impute
 all occurrences of (0).
 
 **Note** all `null` values in the input columns are treated as missing, and so are also imputed.
@@ -1613,7 +1698,7 @@ all occurrences of (0).
 Suppose that we have a DataFrame with the columns `a` and `b`:
 
 ~~~
-      a     |      b      
+      a     |      b  
 ------------|-----------
      1.0    | Double.NaN
      2.0    | Double.NaN
@@ -1646,6 +1731,7 @@ Refer to the [Imputer Python docs](api/python/reference/api/pyspark.ml.feature.I
 for more details on the API.
 
 {% include_example python/ml/imputer_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -1654,6 +1740,7 @@ Refer to the [Imputer Scala docs](api/scala/org/apache/spark/ml/feature/Imputer.
 for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/ImputerExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -1662,6 +1749,7 @@ Refer to the [Imputer Java docs](api/java/org/apache/spark/ml/feature/Imputer.ht
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaImputerExample.java %}
+
 </div>
 
 </div>
@@ -1676,11 +1764,10 @@ sub-array of the original features. It is useful for extracting features from a 
 `VectorSlicer` accepts a vector column with specified indices, then outputs a new vector column
 whose values are selected via those indices. There are two types of indices,
 
- 1. Integer indices that represent the indices into the vector, `setIndices()`.
-
- 2. String indices that represent the names of features into the vector, `setNames()`.
- *This requires the vector column to have an `AttributeGroup` since the implementation matches on
- the name field of an `Attribute`.*
+1. Integer indices that represent the indices into the vector, `setIndices()`.
+2. String indices that represent the names of features into the vector, `setNames()`.
+   *This requires the vector column to have an `AttributeGroup` since the implementation matches on
+   the name field of an `Attribute`.*
 
 Specification by integer and string are both acceptable. Moreover, you can use integer index and
 string name simultaneously. At least one feature must be selected. Duplicate features are not
@@ -1729,6 +1816,7 @@ Refer to the [VectorSlicer Python docs](api/python/reference/api/pyspark.ml.feat
 for more details on the API.
 
 {% include_example python/ml/vector_slicer_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -1737,6 +1825,7 @@ Refer to the [VectorSlicer Scala docs](api/scala/org/apache/spark/ml/feature/Vec
 for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/VectorSlicerExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -1745,13 +1834,14 @@ Refer to the [VectorSlicer Java docs](api/java/org/apache/spark/ml/feature/Vecto
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaVectorSlicerExample.java %}
+
 </div>
 
 </div>
 
 ## RFormula
 
-`RFormula` selects columns specified by an [R model formula](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/formula.html). 
+`RFormula` selects columns specified by an [R model formula](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/formula.html).
 Currently we support a limited subset of the R operators, including '~', '.', ':', '+', and '-'.
 The basic operators are:
 
@@ -1766,12 +1856,13 @@ Suppose `a` and `b` are double columns, we use the following simple examples to 
 * `y ~ a + b` means model `y ~ w0 + w1 * a + w2 * b` where `w0` is the intercept and `w1, w2` are coefficients.
 * `y ~ a + b + a:b - 1` means model `y ~ w1 * a + w2 * b + w3 * a * b` where `w1, w2, w3` are coefficients.
 
-`RFormula` produces a vector column of features and a double or string column of label. 
+`RFormula` produces a vector column of features and a double or string column of label.
 Like when formulas are used in R for linear regression, numeric columns will be cast to doubles.
 As to string input columns, they will first be transformed with [StringIndexer](ml-features.html#stringindexer) using ordering determined by `stringOrderType`,
 and the last category after ordering is dropped, then the doubles will be one-hot encoded.
 
 Suppose a string feature column containing values `{'b', 'a', 'b', 'a', 'c', 'b'}`, we set `stringOrderType` to control the encoding:
+
 ~~~
 stringOrderType | Category mapped to 0 by StringIndexer |  Category dropped by RFormula
 ----------------|---------------------------------------|---------------------------------
@@ -1817,6 +1908,7 @@ Refer to the [RFormula Python docs](api/python/reference/api/pyspark.ml.feature.
 for more details on the API.
 
 {% include_example python/ml/rformula_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -1825,6 +1917,7 @@ Refer to the [RFormula Scala docs](api/scala/org/apache/spark/ml/feature/RFormul
 for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/RFormulaExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -1833,6 +1926,7 @@ Refer to the [RFormula Java docs](api/java/org/apache/spark/ml/feature/RFormula.
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaRFormulaExample.java %}
+
 </div>
 
 </div>
@@ -1843,13 +1937,14 @@ for more details on the API.
 categorical features. ChiSqSelector uses the
 [Chi-Squared test of independence](https://en.wikipedia.org/wiki/Chi-squared_test) to decide which
 features to choose. It supports five selection methods: `numTopFeatures`, `percentile`, `fpr`, `fdr`, `fwe`:
+
 * `numTopFeatures` chooses a fixed number of top features according to a chi-squared test. This is akin to yielding the features with the most predictive power.
 * `percentile` is similar to `numTopFeatures` but chooses a fraction of all features instead of a fixed number.
 * `fpr` chooses all features whose p-values are below a threshold, thus controlling the false positive rate of selection.
 * `fdr` uses the [Benjamini-Hochberg procedure](https://en.wikipedia.org/wiki/False_discovery_rate#Benjamini.E2.80.93Hochberg_procedure) to choose all features whose false discovery rate is below a threshold.
 * `fwe` chooses all features whose p-values are below a threshold. The threshold is scaled by 1/numFeatures, thus controlling the family-wise error rate of selection.
-By default, the selection method is `numTopFeatures`, with the default number of top features set to 50.
-The user can choose a selection method using `setSelectorType`.
+  By default, the selection method is `numTopFeatures`, with the default number of top features set to 50.
+  The user can choose a selection method using `setSelectorType`.
 
 **Examples**
 
@@ -1883,6 +1978,7 @@ Refer to the [ChiSqSelector Python docs](api/python/reference/api/pyspark.ml.fea
 for more details on the API.
 
 {% include_example python/ml/chisq_selector_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -1891,6 +1987,7 @@ Refer to the [ChiSqSelector Scala docs](api/scala/org/apache/spark/ml/feature/Ch
 for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/ChiSqSelectorExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -1899,15 +1996,16 @@ Refer to the [ChiSqSelector Java docs](api/java/org/apache/spark/ml/feature/ChiS
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaChiSqSelectorExample.java %}
+
 </div>
 
 </div>
 
 ## UnivariateFeatureSelector
 
-`UnivariateFeatureSelector` operates on categorical/continuous labels with categorical/continuous features. 
-User can set `featureType` and `labelType`, and Spark will pick the score function to use based on the specified 
-`featureType` and `labelType`. 
+`UnivariateFeatureSelector` operates on categorical/continuous labels with categorical/continuous features.
+User can set `featureType` and `labelType`, and Spark will pick the score function to use based on the specified
+`featureType` and `labelType`.
 
 ~~~
 featureType |  labelType |score function
@@ -1918,6 +2016,7 @@ continuous  |continuous  | F-value (f_regression)
 ~~~
 
 It supports five selection modes: `numTopFeatures`, `percentile`, `fpr`, `fdr`, `fwe`:
+
 * `numTopFeatures` chooses a fixed number of top features.
 * `percentile` is similar to `numTopFeatures` but chooses a fraction of all features instead of a fixed number.
 * `fpr` chooses all features whose p-values are below a threshold, thus controlling the false positive rate of selection.
@@ -1964,6 +2063,7 @@ Refer to the [UnivariateFeatureSelector Python docs](api/python/reference/api/py
 for more details on the API.
 
 {% include_example python/ml/univariate_feature_selector_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -1972,6 +2072,7 @@ Refer to the [UnivariateFeatureSelector Scala docs](api/scala/org/apache/spark/m
 for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/UnivariateFeatureSelectorExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -1980,6 +2081,7 @@ Refer to the [UnivariateFeatureSelector Java docs](api/java/org/apache/spark/ml/
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaUnivariateFeatureSelectorExample.java %}
+
 </div>
 
 </div>
@@ -1987,9 +2089,9 @@ for more details on the API.
 ## VarianceThresholdSelector
 
 `VarianceThresholdSelector` is a selector that removes low-variance features. Features with a
- (sample) variance not greater than the `varianceThreshold` will be removed. If not set, `varianceThreshold`
- defaults to 0, which means only features with variance 0 (i.e. features that have the same value in all samples)
- will be removed.
+(sample) variance not greater than the `varianceThreshold` will be removed. If not set, `varianceThreshold`
+defaults to 0, which means only features with variance 0 (i.e. features that have the same value in all samples)
+will be removed.
 
 **Examples**
 
@@ -2030,6 +2132,7 @@ Refer to the [VarianceThresholdSelector Python docs](api/python/reference/api/py
 for more details on the API.
 
 {% include_example python/ml/variance_threshold_selector_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -2038,6 +2141,7 @@ Refer to the [VarianceThresholdSelector Scala docs](api/scala/org/apache/spark/m
 for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/VarianceThresholdSelectorExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -2046,21 +2150,19 @@ Refer to the [VarianceThresholdSelector Java docs](api/java/org/apache/spark/ml/
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaVarianceThresholdSelectorExample.java %}
+
 </div>
 
 </div>
 
 # Locality Sensitive Hashing
+
 [Locality Sensitive Hashing (LSH)](https://en.wikipedia.org/wiki/Locality-sensitive_hashing) is an important class of hashing techniques, which is commonly used in clustering, approximate nearest neighbor search and outlier detection with large datasets.
 
 The general idea of LSH is to use a family of functions ("LSH families") to hash data points into buckets, so that the data points which are close to each other are in the same buckets with high probability, while data points that are far away from each other are very likely in different buckets. An LSH family is formally defined as follows.
 
 In a metric space `(M, d)`, where `M` is a set and `d` is a distance function on `M`, an LSH family is a family of functions `h` that satisfy the following properties:
-`\[
-\forall p, q \in M,\\
-d(p,q) \leq r1 \Rightarrow Pr(h(p)=h(q)) \geq p1\\
-d(p,q) \geq r2 \Rightarrow Pr(h(p)=h(q)) \leq p2
-\]`
+`\[ \forall p, q \in M,\\ d(p,q) \leq r1 \Rightarrow Pr(h(p)=h(q)) \geq p1\\ d(p,q) \geq r2 \Rightarrow Pr(h(p)=h(q)) \leq p2 \]`
 This LSH family is called `(r1, r2, p1, p2)`-sensitive.
 
 In Spark, different LSH families are implemented in separate classes (e.g., `MinHash`), and APIs for feature transformation, approximate similarity join and approximate nearest neighbor are provided in each class.
@@ -2072,6 +2174,7 @@ In LSH, we define a false positive as a pair of distant input features (with `$d
 We describe the major types of operations which LSH can be used for.  A fitted LSH model has methods for each of these operations.
 
 ### Feature Transformation
+
 Feature transformation is the basic functionality to add hashed values as a new column. This can be useful for dimensionality reduction. Users can specify input and output column names by setting `inputCol` and `outputCol`.
 
 LSH also supports multiple LSH hash tables. Users can specify the number of hash tables by setting `numHashTables`. This is also used for [OR-amplification](https://en.wikipedia.org/wiki/Locality-sensitive_hashing#Amplification) in approximate similarity join and approximate nearest neighbor. Increasing the number of hash tables will increase the accuracy but will also increase communication cost and running time.
@@ -2079,6 +2182,7 @@ LSH also supports multiple LSH hash tables. Users can specify the number of hash
 The type of `outputCol` is `Seq[Vector]` where the dimension of the array equals `numHashTables`, and the dimensions of the vectors are currently set to 1. In future releases, we will implement AND-amplification so that users can specify the dimensions of these vectors.
 
 ### Approximate Similarity Join
+
 Approximate similarity join takes two datasets and approximately returns pairs of rows in the datasets whose distance is smaller than a user-defined threshold. Approximate similarity join supports both joining two different datasets and self-joining. Self-joining will produce some duplicate pairs.
 
 Approximate similarity join accepts both transformed and untransformed datasets as input. If an untransformed dataset is used, it will be transformed automatically. In this case, the hash signature will be created as `outputCol`.
@@ -2086,6 +2190,7 @@ Approximate similarity join accepts both transformed and untransformed datasets 
 In the joined dataset, the origin datasets can be queried in `datasetA` and `datasetB`. A distance column will be added to the output dataset to show the true distance between each pair of rows returned.
 
 ### Approximate Nearest Neighbor Search
+
 Approximate nearest neighbor search takes a dataset (of feature vectors) and a key (a single feature vector), and it approximately returns a specified number of rows in the dataset that are closest to the vector.
 
 Approximate nearest neighbor search accepts both transformed and untransformed datasets as input. If an untransformed dataset is used, it will be transformed automatically. In this case, the hash signature will be created as `outputCol`.
@@ -2099,13 +2204,9 @@ A distance column will be added to the output dataset to show the true distance 
 ### Bucketed Random Projection for Euclidean Distance
 
 [Bucketed Random Projection](https://en.wikipedia.org/wiki/Locality-sensitive_hashing#Stable_distributions) is an LSH family for Euclidean distance. The Euclidean distance is defined as follows:
-`\[
-d(\mathbf{x}, \mathbf{y}) = \sqrt{\sum_i (x_i - y_i)^2}
-\]`
+`\[ d(\mathbf{x}, \mathbf{y}) = \sqrt{\sum_i (x_i - y_i)^2} \]`
 Its LSH family projects feature vectors `$\mathbf{x}$` onto a random unit vector `$\mathbf{v}$` and portions the projected results into hash buckets:
-`\[
-h(\mathbf{x}) = \Big\lfloor \frac{\mathbf{x} \cdot \mathbf{v}}{r} \Big\rfloor
-\]`
+`\[ h(\mathbf{x}) = \Big\lfloor \frac{\mathbf{x} \cdot \mathbf{v}}{r} \Big\rfloor \]`
 where `r` is a user-defined bucket length. The bucket length can be used to control the average size of hash buckets (and thus the number of buckets). A larger bucket length (i.e., fewer buckets) increases the probability of features being hashed to the same bucket (increasing the numbers of true and false positives).
 
 Bucketed Random Projection accepts arbitrary vectors as input features, and supports both sparse and dense vectors.
@@ -2118,6 +2219,7 @@ Refer to the [BucketedRandomProjectionLSH Python docs](api/python/reference/api/
 for more details on the API.
 
 {% include_example python/ml/bucketed_random_projection_lsh_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -2126,6 +2228,7 @@ Refer to the [BucketedRandomProjectionLSH Scala docs](api/scala/org/apache/spark
 for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/BucketedRandomProjectionLSHExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -2134,19 +2237,17 @@ Refer to the [BucketedRandomProjectionLSH Java docs](api/java/org/apache/spark/m
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaBucketedRandomProjectionLSHExample.java %}
+
 </div>
 
 </div>
 
 ### MinHash for Jaccard Distance
+
 [MinHash](https://en.wikipedia.org/wiki/MinHash) is an LSH family for Jaccard distance where input features are sets of natural numbers. Jaccard distance of two sets is defined by the cardinality of their intersection and union:
-`\[
-d(\mathbf{A}, \mathbf{B}) = 1 - \frac{|\mathbf{A} \cap \mathbf{B}|}{|\mathbf{A} \cup \mathbf{B}|}
-\]`
+`\[ d(\mathbf{A}, \mathbf{B}) = 1 - \frac{|\mathbf{A} \cap \mathbf{B}|}{|\mathbf{A} \cup \mathbf{B}|} \]`
 MinHash applies a random hash function `g` to each element in the set and take the minimum of all hashed values:
-`\[
-h(\mathbf{A}) = \min_{a \in \mathbf{A}}(g(a))
-\]`
+`\[ h(\mathbf{A}) = \min_{a \in \mathbf{A}}(g(a)) \]`
 
 The input sets for MinHash are represented as binary vectors, where the vector indices represent the elements themselves and the non-zero values in the vector represent the presence of that element in the set. While both dense and sparse vectors are supported, typically sparse vectors are recommended for efficiency. For example, `Vectors.sparse(10, Array[(2, 1.0), (3, 1.0), (5, 1.0)])` means there are 10 elements in the space. This set contains elem 2, elem 3 and elem 5. All non-zero values are treated as binary "1" values.
 
@@ -2160,6 +2261,7 @@ Refer to the [MinHashLSH Python docs](api/python/reference/api/pyspark.ml.featur
 for more details on the API.
 
 {% include_example python/ml/min_hash_lsh_example.py %}
+
 </div>
 
 <div data-lang="scala" markdown="1">
@@ -2168,6 +2270,7 @@ Refer to the [MinHashLSH Scala docs](api/scala/org/apache/spark/ml/feature/MinHa
 for more details on the API.
 
 {% include_example scala/org/apache/spark/examples/ml/MinHashLSHExample.scala %}
+
 </div>
 
 <div data-lang="java" markdown="1">
@@ -2176,6 +2279,7 @@ Refer to the [MinHashLSH Java docs](api/java/org/apache/spark/ml/feature/MinHash
 for more details on the API.
 
 {% include_example java/org/apache/spark/examples/ml/JavaMinHashLSHExample.java %}
+
 </div>
 
 </div>
